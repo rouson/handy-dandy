@@ -21,13 +21,29 @@ unset CC
 unset CXX
 
 ninja_build_dir="./build"
+rm -rf $ninja_build_dir
+
+
+if ! command -v ccache ; then
+  brew install ccache
+fi
+
+# Put ccache in the PATH
+if [ -z $PATH ]; then
+  export PATH=/usr/local/opt/ccache/libexec
+else
+  export PATH=/usr/local/opt/ccache/libexec:$PATH
+fi
 
 build_with_ninja()
 {
   cmake -B $ninja_build_dir -G Ninja llvm \
     -DLLVM_ENABLE_PROJECTS="flang;clang;mlir" \
     -DLLVM_TARGETS_TO_BUILD=X86 \
-    -DCMAKE_BUILD_TYPE=Release  
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_C_COMPILER=clang \
+    -DCMAKE_CXX_COMPILER=clang++ \
+    -DLLVM_CCACHE_BUILD=On
   cd $ninja_build_dir
   ninja
   ninja check-flang
