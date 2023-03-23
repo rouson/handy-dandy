@@ -23,7 +23,6 @@ unset CXX
 ninja_build_dir="./build"
 rm -rf $ninja_build_dir
 
-
 if ! command -v ccache ; then
   brew install ccache
 fi
@@ -35,17 +34,21 @@ else
   export PATH=/usr/local/opt/ccache/libexec:$PATH
 fi
 
+OS=$(uname)
+if [ $OS = "Darwin" ]; then
+  D_DEFAULT_SYSROOT="-DDEFAULT_SYSROOT=\"$(xcrun --show-sdk-path)\""
+else
+  D_DEFAULT_SYSROOT=""
+fi
+
 build_with_ninja()
 {
   cmake -B $ninja_build_dir -G Ninja llvm \
     -DLLVM_ENABLE_PROJECTS="flang;clang;mlir" \
     -DLLVM_TARGETS_TO_BUILD=X86 \
     -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_C_COMPILER=clang \
-    -DCMAKE_CXX_COMPILER=clang++ \
-    -DLLVM_CCACHE_BUILD=On
+    -DLLVM_CCACHE_BUILD=On $D_DEFAULT_SYSROOT
   cd $ninja_build_dir
-  ninja
   ninja check-flang
 }
 
@@ -56,10 +59,10 @@ build_with_make()
   cmake -B $make_build_dir llvm \
     -DLLVM_ENABLE_PROJECTS="clang;flang;mlir" \
     -DLLVM_TARGETS_TO_BUILD="X86" \
-    -DCMAKE_BUILD_TYPE=Release
+    -DCMAKE_BUILD_TYPE=Release \
+    -DLLVM_CCACHE_BUILD=On $D_DEFAULT_SYSROOT
   cd $make_build_dir
-  make -j 7
-  make check-flang
+  make -j 7 check-flang
 }
 
 list_compilers()
