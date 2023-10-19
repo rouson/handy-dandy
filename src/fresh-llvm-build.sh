@@ -36,19 +36,36 @@ fi
 
 OS=$(uname)
 if [ $OS = "Darwin" ]; then
-  D_DEFAULT_SYSROOT="-DDEFAULT_SYSROOT=\"$(xcrun --show-sdk-path)\""
+  DEFAULT_SYSROOT="$(xcrun --show-sdk-path)"
 else
-  D_DEFAULT_SYSROOT=""
+  DEFAULT_SYSROOT=""
 fi
+
+uname_a=$(uname -a)
+arch="${uname_a##* }" # extract text after final space
+case $arch in
+    x86_64)
+        targets="X86"
+        ;;
+    arm64)
+        targets="AArch64"
+        ;;
+    *)
+        echo "ERROR: unknown architecture \"$arch\" specified in the trailing output of 'uname -a'"
+        exit 1
+        ;;
+esac
+
 
 build_with_ninja()
 {
-  cmake -B $ninja_build_dir -G Ninja llvm \
+  cmake -B "$ninja_build_dir" -G Ninja llvm \
     -DLLVM_ENABLE_PROJECTS="flang;clang;mlir" \
-    -DLLVM_TARGETS_TO_BUILD=X86 \
+    -DLLVM_TARGETS_TO_BUILD="$targets" \
     -DCMAKE_BUILD_TYPE=Release \
-    -DLLVM_CCACHE_BUILD=On $D_DEFAULT_SYSROOT
-  cd $ninja_build_dir
+    -DLLVM_CCACHE_BUILD=On \
+    -DDEFAULT_SYSROOT="$DEFAULT_SYSROOT"
+  cd "$ninja_build_dir"
   ninja check-flang
 }
 
@@ -58,9 +75,10 @@ build_with_make()
 {
   cmake -B $make_build_dir llvm \
     -DLLVM_ENABLE_PROJECTS="clang;flang;mlir" \
-    -DLLVM_TARGETS_TO_BUILD="X86" \
+    -DLLVM_TARGETS_TO_BUILD="$targets" \
     -DCMAKE_BUILD_TYPE=Release \
-    -DLLVM_CCACHE_BUILD=On $D_DEFAULT_SYSROOT
+    -DLLVM_CCACHE_BUILD=On \
+    -DDEFAULT_SYSROOT="$DEFAULT_SYSROOT"
   cd $make_build_dir
   make -j 7 check-flang
 }
