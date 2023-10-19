@@ -23,9 +23,14 @@ unset CXX
 ninja_build_dir="./build"
 rm -rf $ninja_build_dir
 
-if ! command -v ccache ; then
-  brew install ccache
-fi
+install_if_missing()
+{
+  if ! command -v $1; then
+    brew install $1
+  fi
+}
+install_if_missing ccache
+install_if_missing ninja
 
 # Put ccache in the PATH
 if [ -z $PATH ]; then
@@ -56,14 +61,14 @@ case $arch in
         ;;
 esac
 
-
 build_with_ninja()
 {
   cmake -B $ninja_build_dir -G Ninja llvm \
     -DLLVM_ENABLE_PROJECTS="flang;clang;mlir" \
     -DLLVM_TARGETS_TO_BUILD="$targets" \
     -DCMAKE_BUILD_TYPE=Release \
-    -DLLVM_CCACHE_BUILD=On $D_DEFAULT_SYSROOT
+    -DLLVM_CCACHE_BUILD=On \
+    $D_DEFAULT_SYSROOT
   cd $ninja_build_dir
   ninja check-flang
 }
