@@ -65,7 +65,7 @@ cd $build_dir
 
 cmake \
   -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_Fortran_COMPILER:FILEPATH=flang-new \
+  -DCMAKE_Fortran_COMPILER:FILEPATH="$FC" \
   -DTEST_SUITE_FORTRAN:BOOL=On \
   -DTEST_SUITE_SUBDIRS=Fortran/UnitTests/finalization \
   ../llvm-test-suite
