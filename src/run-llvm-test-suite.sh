@@ -65,18 +65,20 @@ while [ "${1:-}" != "" ]; do
     shift
 done
 
-if [ ! -d llvm-test-suite ]; then
-  git clone git@github.com:llvm/llvm-test-suite
+if [ ! -d "Fortran/UnitTests" ]; then
+  echo ""
+  echo "Please run this script at the top level of the llvm-test-suite build tree."
+  exit 1
 fi
 
 if [ -z ${TEST_DIR:-} ]; then
   echo ""
   echo "Please use -t=<name> or --test-dir=<name> to specify one of the following Fortran/UnitTests subdirectories to run:"
-  ls llvm-test-suite/Fortran/UnitTests
+  ls Fortran/UnitTests
   exit 1
 fi
 
-build_dir=test-suite-build
+build_dir=build-test-suite
 
 if [ -d $build_dir ]; then
   rm -rf $build_dir
@@ -84,7 +86,7 @@ fi
 mkdir $build_dir
 cd $build_dir
 
-cmake ../llvm-test-suite \
+cmake .. \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_Fortran_COMPILER:FILEPATH="$FC" \
   -DTEST_SUITE_FORTRAN:BOOL=On \
