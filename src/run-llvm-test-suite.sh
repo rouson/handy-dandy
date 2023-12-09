@@ -73,8 +73,10 @@ fi
 
 if [ -z ${TEST_DIR:-} ]; then
   echo ""
-  echo "Please use -t=<name> or --test-dir=<name> to specify one of the following Fortran/UnitTests subdirectories to run:"
-  ls Fortran/UnitTests
+  echo "Please use -t=<name> or --test-dir=<name> to name a"
+  echo "Fortran/UnitTests subdirectory containing tests to run:"
+  echo ""
+  tree -L 1 -d Fortran/UnitTests
   exit 1
 fi
 
