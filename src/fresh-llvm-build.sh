@@ -59,6 +59,9 @@ esac
 
 build_with_ninja()
 {
+  if ! command -v ninja ; then
+    brew install ninja
+  fi
   cmake -B "$ninja_build_dir" -G Ninja llvm \
     -DLLVM_ENABLE_PROJECTS="flang;clang;mlir" \
     -DLLVM_TARGETS_TO_BUILD="$targets" \
@@ -73,6 +76,9 @@ make_build_dir="./build-with-make"
 
 build_with_make()
 {
+  if ! command -v cmake ; then
+    brew install cmake
+  fi
   cmake -B $make_build_dir llvm \
     -DLLVM_ENABLE_PROJECTS="clang;flang;mlir" \
     -DLLVM_TARGETS_TO_BUILD="$targets" \
