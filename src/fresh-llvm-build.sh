@@ -80,7 +80,7 @@ build_with_make()
     brew install cmake
   fi
   cmake -B $make_build_dir llvm \
-    -DLLVM_ENABLE_PROJECTS="clang;flang;mlir" \
+    -DLLVM_ENABLE_PROJECTS="clang;flang;mlir;openmp" \
     -DLLVM_TARGETS_TO_BUILD="$targets" \
     -DCMAKE_BUILD_TYPE=Release \
     -DLLVM_CCACHE_BUILD=On \
