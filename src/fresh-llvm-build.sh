@@ -63,13 +63,13 @@ build_with_ninja()
     brew install ninja
   fi
   cmake -B "$ninja_build_dir" -G Ninja llvm \
-    -DLLVM_ENABLE_PROJECTS="flang;clang;mlir" \
+    -DLLVM_ENABLE_PROJECTS="flang;clang;mlir;openmp" \
     -DLLVM_TARGETS_TO_BUILD="$targets" \
     -DCMAKE_BUILD_TYPE=Release \
     -DLLVM_CCACHE_BUILD=On \
     -DDEFAULT_SYSROOT="$DEFAULT_SYSROOT"
   cd "$ninja_build_dir"
-  ninja check-flang
+  ninja
 }
 
 make_build_dir="./build-with-make"
@@ -86,7 +86,7 @@ build_with_make()
     -DLLVM_CCACHE_BUILD=On \
     -DDEFAULT_SYSROOT="$DEFAULT_SYSROOT"
   cd $make_build_dir
-  make -j 7 check-flang
+  make -j 7
 }
 
 list_compilers()
