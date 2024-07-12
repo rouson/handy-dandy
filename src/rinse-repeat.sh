@@ -19,7 +19,7 @@ if [ "${1:-}" == "-h" ] || [ "${1:-}" == "--help"  ]; then
   exit 0
 fi
 
-if [ ! -f ./bin/flang  ]; then
+if [ ! -f ./bin/flang-new  ]; then
   echo "./bin/flang not found"
   echo "Please run rinse-repeat.sh at the top level of a previously built flang build tree."
   exit 1
