@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -e  # exit on error
+set -e # exit on error
 set -u # error on use of undefined variable
 
 print_usage_info()
@@ -8,16 +8,11 @@ print_usage_info()
     echo "LLVM/flang Build Script"
     echo ""
     echo "USAGE:"
-    echo "fresh-llvm-build.sh [--help | --list-compilers]"
+    echo "fresh-llvm-build.sh [--help]"
     echo ""
     echo " -h or --help             Display this help text"
-    echo " -l or --list-compilers   List the compilers that will be used to build"
     echo ""
 }
-
-unset FC
-unset CC
-unset CXX
 
 handle_flag()
 {
@@ -27,10 +22,6 @@ handle_flag()
       case $PARAM in
           -h | --help)
               print_usage_info
-              exit
-              ;;
-          l | --list-compilers)
-              list_compilers
               exit
               ;;
           *)
@@ -43,37 +34,34 @@ handle_flag()
   done
 }
 
-list_compilers()
-{
-    echo "This script will use the following compilers to build HEGEL:"
-    echo ""
-    echo "  $FC"
-    echo "  $CC"
-    echo "  $CXX"
-}
-
 build_petsc()
 {
-  git clone -b release git@gitlab.com/petsc/petsc
+  git clone -b release git@gitlab.com:petsc/petsc
   cd petsc
-   ./configure --prefix=$HOME/.local/petsc CC=mpicc FC=mpifort CXX=mpicxx
-   make install
+    ./configure FC=mpif90 CC=mpicc CXX=mpicxx --download-fblaslapack --download-metis --download-parmetis --with-debugging=0 COPTFLAGS='-O3 -mtune=native' CXXOPTFLAGS='-O3' FOPTFLAGS='-O3' --prefix="$HOME/libraries/petsc"
+    make
+    make install
   cd -
 }
 
 build_hegel()
 {
-  git clone git@github.com/chess-uiuc/hegel
+  git clone git@github.com:chess-uiuc/hegel
   cd hegel
-    ./configure FC=mpif90 CC=mpicc CXX=mpicxx --enable-optim --enable-verbose --with-petsc=$HOME/.local/petsc
+     #export LD_LIBRARY_PATH="$HOME/libraries/petsc/lib:$LD_LIBRARY_PATH"
+     #export DYLD_LIBRARY_PATH="$LD_LIBRARY_PATH"
+    ./autogen.sh
+    ./configure FC=mpif90 CC=mpicc CXX=mpicxx --enable-debug --enable-euns=yes --enable-euns_nlte=no --enable-euns_lte=no --enable-icp_lte=no --enable-icp_nlte=no --with-petsc="`brew --prefix petsc`" # --prefix="$HOME/libraries/hegel"
+    make
+    make install
   cd - 
-   make
 }
 
 if [ ! -z "${1:-}" ]; then
   handle_flag $1
 fi
 
-list_compilers
-build_petsc
+if [ ! -d petsc ]; then
+  build_petsc
+fi
 build_hegel
