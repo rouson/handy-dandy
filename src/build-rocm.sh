@@ -6,17 +6,14 @@ set -u # error on use of undefined variable
 function inspect_system(){
 
   OS=$(uname)
-
   if [ $OS = "Darwin" ]; then
     DEFAULT_SYSROOT="$(xcrun --show-sdk-path)"
   else
     DEFAULT_SYSROOT=""
   fi
   
-  uname_a=$(uname -a)   # get machine info
-  arch="${uname_a##* }" # extract text after final space
-
-  case $arch in
+  machine=$(uname -m)
+  case $machine in
       x86_64)
           targets="X86"
           ;;  
@@ -24,7 +21,7 @@ function inspect_system(){
           targets="AArch64"
           ;;  
       *)  
-          echo "ERROR: unknown architecture \"$arch\" specified in the trailing output of 'uname -a'"
+          echo "ERROR: 'uname -m' returns an unknown machine type: \"$machine\""
           exit 1
           ;;  
   esac
@@ -45,7 +42,7 @@ function support_gpu_if_requested(){
   fi
 }
 
-function clone_and_configure(){
+function clone_configure_build(){
 
   if command -v ccache ; then
     CCACHE="`which ccache`"
