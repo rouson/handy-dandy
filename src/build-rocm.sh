@@ -51,8 +51,8 @@ function clone_configure_build(){
   fi
 
   ninja_build_dir=$PWD/build-rocm
-  git clone -b amd-trunk-dev git@github.com:ROCm/llvm-project
-  cd llvm-project
+  git clone -b amd-trunk-dev git@github.com:ROCm/llvm-project rocm-llvm-project
+  cd rocm-llvm-project
   
   cmake -B "$ninja_build_dir" -G Ninja llvm             \
     -DDEFAULT_SYSROOT="$DEFAULT_SYSROOT"                \
