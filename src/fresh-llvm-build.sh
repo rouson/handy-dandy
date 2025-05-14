@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -e  # exit on error
+set -e # exit on error
 set -u # error on use of undefined variable
 
 print_usage_info()
@@ -16,16 +16,8 @@ print_usage_info()
     echo ""
 }
 
-unset FC
-unset CC
-unset CXX
-
 ninja_build_dir="./build"
-rm -rf $ninja_build_dir
-
-if ! command -v ccache ; then
-  brew install ccache
-fi
+# rm -rf $ninja_build_dir
 
 # Put ccache in the PATH
 if [ -z $PATH ]; then
@@ -39,6 +31,27 @@ if [ $OS = "Darwin" ]; then
   DEFAULT_SYSROOT="$(xcrun --show-sdk-path)"
 else
   DEFAULT_SYSROOT=""
+fi
+
+if ! command -v ccache ; then
+  if [ $OS = "Darwin" ]; then
+    brew install ccache
+  elif [ $OS = "Linux" ]; then
+    sudo apt install -y ccache
+  else
+    echo "Please install ccache and restart this script."
+    exit 1
+  fi
+fi
+if ! command -v cmake ; then
+  if [ $OS = "Darwin" ]; then
+    brew install cmake
+  elif [ $OS = "Linux" ]; then
+    sudo apt install -y cmake
+  else
+    echo "Please install cmake and restart this script."
+    exit 1
+  fi
 fi
 
 uname_a=$(uname -a)
@@ -56,41 +69,90 @@ case $arch in
         ;;
 esac
 
-
 build_with_ninja()
 {
   if ! command -v ninja ; then
-    brew install ninja
+    if [ $OS = "Darwin" ]; then
+      brew install ninha
+    elif [ $OS = "Linux" ]; then
+      sudo apt install -y ninja-build
+    else
+      echo "Please install ccache and restart this script."
+      exit 1
+    fi
   fi
-  cmake -B "$ninja_build_dir" -G Ninja llvm \
-    -DLLVM_ENABLE_PROJECTS="flang;clang;mlir;openmp" \
-    -DLLVM_TARGETS_TO_BUILD="$targets" \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DLLVM_CCACHE_BUILD=On \
-    -DDEFAULT_SYSROOT="$DEFAULT_SYSROOT"
-  cd "$ninja_build_dir"
+  cmake -B "$ninja_build_dir" -G Ninja llvm             \   
+    -DDEFAULT_SYSROOT="$DEFAULT_SYSROOT"                \   
+    -DCMAKE_BUILD_TYPE=Release                          \   
+    -DLLVM_ENABLE_ASSERTIONS=ON                         \   
+    -DCMAKE_INSTALL_PREFIX=$ninja_build_dir/install     \   
+    -DCLANG_DEFAULT_LINKER=lld                          \   
+    -DLLVM_TARGETS_TO_BUILD="$targets"                  \   
+    -DLLVM_ENABLE_RUNTIMES='openmp;compiler-rt;offload' \
+    -DLIBOMPTARGET_PLUGINS_TO_BUILD='host'              \   
+    -DCOMPILER_RT_BUILD_ORC=OFF                         \   
+    -DCOMPILER_RT_BUILD_XRAY=OFF                        \   
+    -DCOMPILER_RT_BUILD_MEMPROF=OFF                     \   
+    -DCOMPILER_RT_BUILD_LIBFUZZER=OFF                   \   
+    -DCOMPILER_RT_BUILD_SANITIZERS=ON                   \   
+    -DCMAKE_C_COMPILER_LAUNCHER="$CCACHE"               \   
+    -DCMAKE_CXX_COMPILER_LAUNCHER="$CCACHE"             \   
+    -DLLVM_ENABLE_PROJECTS='clang;lld;llvm;flang'       \   
+    -DLLVM_INSTALL_UTILS=ON                             \   
+    -DBUILD_SHARED_LIBS=ON                              \   
+    -DCMAKE_CXX_STANDARD=17                             \   
+    -DLIBOMPTARGET_BUILD_CUDA_PLUGIN=OFF                \   
+    -DCLANG_DEFAULT_PIE_ON_LINUX=OFF                    \   
+    -DLIBOMP_OMPT_SUPPORT=ON
   ninja
+  ninja install
 }
 
 make_build_dir="./build-with-make"
 
 build_with_make()
 {
-  if ! command -v cmake ; then
-    brew install cmake
-  fi
-  cmake -B $make_build_dir llvm \
-    -DLLVM_ENABLE_PROJECTS="clang;flang;mlir;openmp" \
-    -DLLVM_TARGETS_TO_BUILD="$targets" \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DLLVM_CCACHE_BUILD=On \
-    -DDEFAULT_SYSROOT="$DEFAULT_SYSROOT"
-  cd $make_build_dir
+  cmake -B $make_build_dir llvm                         \   
+    -DDEFAULT_SYSROOT="$DEFAULT_SYSROOT"                \ 
+    -DCMAKE_BUILD_TYPE=Release                          \ 
+    -DLLVM_ENABLE_ASSERTIONS=ON                         \ 
+    -DCMAKE_INSTALL_PREFIX=$ninja_build_dir/install     \ 
+    -DCLANG_DEFAULT_LINKER=lld                          \ 
+    -DLLVM_TARGETS_TO_BUILD="$targets"                  \ 
+    -DLLVM_ENABLE_RUNTIMES='openmp;compiler-rt;offload' \
+    -DLIBOMPTARGET_PLUGINS_TO_BUILD='host'              \ 
+    -DCOMPILER_RT_BUILD_ORC=OFF                         \ 
+    -DCOMPILER_RT_BUILD_XRAY=OFF                        \ 
+    -DCOMPILER_RT_BUILD_MEMPROF=OFF                     \ 
+    -DCOMPILER_RT_BUILD_LIBFUZZER=OFF                   \ 
+    -DCOMPILER_RT_BUILD_SANITIZERS=ON                   \ 
+    -DCMAKE_C_COMPILER_LAUNCHER="$CCACHE"               \ 
+    -DCMAKE_CXX_COMPILER_LAUNCHER="$CCACHE"             \ 
+    -DLLVM_ENABLE_PROJECTS='clang;lld;llvm;flang'       \ 
+    -DLLVM_INSTALL_UTILS=ON                             \ 
+    -DBUILD_SHARED_LIBS=ON                              \ 
+    -DCMAKE_CXX_STANDARD=17                             \ 
+    -DLIBOMPTARGET_BUILD_CUDA_PLUGIN=OFF                \ 
+    -DCLANG_DEFAULT_PIE_ON_LINUX=OFF                    \ 
+    -DLIBOMP_OMPT_SUPPORT=ON
   make -j 7
+  make install
 }
 
 list_compilers()
 {
+    if [ -z ${FC:-} ]; then
+      echo "Please set FC to designate the Fortran compiler to use."
+      exit 1
+    fi
+    if [ -z ${CC:-} ]; then
+      echo "Please set CC to designate the C compiler to use."
+      exit 1
+    fi
+    if [ -z ${CXX:-} ]; then
+      echo "Please set CXX to designate the C=++ compiler to use."
+      exit 1
+    fi
     echo "This script will use the following compilers to build LLVM/flang:"
     echo ""
     echo "  $FC"
