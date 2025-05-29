@@ -25,14 +25,15 @@ print_usage_info()
     echo "LLVM/flang Build Script"
     echo ""
     echo "USAGE:"
-    echo "fresh-llvm-build.sh [--help | --list-compilers]"
+    echo "fresh-llvm-build.sh [--help | --make= | --list-compilers]"
     echo ""
     echo " --help           Display this help text"
+    echo " --make           Build with make instead of ninja"
     echo " --list-compilers List the compilers that will be used to build"
     echo ""
 }
 
-ninja_build_dir="./sipearl/build"
+ninja_build_dir="./build"
 # rm -rf $ninja_build_dir
 
 if ! command -v ccache ; then
@@ -106,9 +107,39 @@ build_with_ninja()
   -DLIBOMPTARGET_BUILD_CUDA_PLUGIN=OFF \
   -DCLANG_DEFAULT_PIE_ON_LINUX=OFF \
   -DLIBOMP_OMPT_SUPPORT=ON
-  cd $ninja_build_dir
   ninja
   ninja install
+}
+
+make_build_dir="./build-with-make"
+
+build_with_make()
+{
+  cmake -B $make_build_dir llvm                         \   
+    -DDEFAULT_SYSROOT="$DEFAULT_SYSROOT"                \ 
+    -DCMAKE_BUILD_TYPE=Release                          \ 
+    -DLLVM_ENABLE_ASSERTIONS=ON                         \ 
+    -DCMAKE_INSTALL_PREFIX=$ninja_build_dir/install     \ 
+    -DCLANG_DEFAULT_LINKER=lld                          \ 
+    -DLLVM_TARGETS_TO_BUILD="$targets"                  \ 
+    -DLLVM_ENABLE_RUNTIMES='openmp;compiler-rt;offload' \
+    -DLIBOMPTARGET_PLUGINS_TO_BUILD='host'              \ 
+    -DCOMPILER_RT_BUILD_ORC=OFF                         \ 
+    -DCOMPILER_RT_BUILD_XRAY=OFF                        \ 
+    -DCOMPILER_RT_BUILD_MEMPROF=OFF                     \ 
+    -DCOMPILER_RT_BUILD_LIBFUZZER=OFF                   \ 
+    -DCOMPILER_RT_BUILD_SANITIZERS=ON                   \ 
+    -DCMAKE_C_COMPILER_LAUNCHER="$CCACHE"               \ 
+    -DCMAKE_CXX_COMPILER_LAUNCHER="$CCACHE"             \ 
+    -DLLVM_ENABLE_PROJECTS='clang;lld;llvm;flang'       \ 
+    -DLLVM_INSTALL_UTILS=ON                             \ 
+    -DBUILD_SHARED_LIBS=ON                              \ 
+    -DCMAKE_CXX_STANDARD=17                             \ 
+    -DLIBOMPTARGET_BUILD_CUDA_PLUGIN=OFF                \ 
+    -DCLANG_DEFAULT_PIE_ON_LINUX=OFF                    \ 
+    -DLIBOMP_OMPT_SUPPORT=ON
+  make -j 7
+  make install
 }
 
 list_compilers()
