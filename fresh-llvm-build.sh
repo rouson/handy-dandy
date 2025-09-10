@@ -91,7 +91,8 @@ build_with_ninja()
   -DCMAKE_INSTALL_PREFIX="$ninja_build_dir/install" \
   -DCLANG_DEFAULT_LINKER=lld \
   -DLLVM_TARGETS_TO_BUILD="$targets" \
-  -DLLVM_ENABLE_RUNTIMES='openmp;compiler-rt;offload' \
+  -DLLVM_ENABLE_RUNTIMES='openmp;compiler-rt;offload;flang-rt' \
+  -DCMAKE_CXX_LINK_FLAGS="-Wl,-rpath,$LD_LIBRARY_PATH"         \
   -DLIBOMPTARGET_PLUGINS_TO_BUILD='host' \
   -DCOMPILER_RT_BUILD_ORC=OFF \
   -DCOMPILER_RT_BUILD_XRAY=OFF \
