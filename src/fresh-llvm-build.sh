@@ -27,13 +27,13 @@ print_usage_info()
     echo "USAGE:"
     echo "fresh-llvm-build.sh [--help | --list-compilers]"
     echo ""
-    echo " --help           Display this help text"
-    echo " --list-compilers List the compilers that will be used to build"
+    echo " -h, --help           Display this help text"
+    echo " -l, --list-compilers List the compilers that will be used to build"
     echo ""
 }
 
-ninja_build_dir="./sipearl/build"
-# rm -rf $ninja_build_dir
+build_dir="./build"
+install_dir="$HOME/.local"
 
 if ! command -v ccache ; then
   if [ $OS = "Darwin" ]; then
@@ -48,8 +48,18 @@ fi
 
 if [ $OS = "Darwin" ]; then
   libexec_path="/usr/local/opt/ccache/libexec"
+  if [ -z ${DYLD_LIBRARY_PATH:-} ]; then
+    export CMAKE_CXX_LINK_FLAGS="-Wl,-rpath"
+  else
+    export CMAKE_CXX_LINK_FLAGS="-Wl,-rpath,$DYLD_LIBRARY_PATH"
+  fi
 else
   libexec_path="/usr/lib/ccache"
+  if [ -z $LD_LIBRARY_PATH ]; then
+    export CMAKE_CXX_LINK_FLAGS="-Wl,-rpath"
+  else
+    export CMAKE_CXX_LINK_FLAGS="-Wl,-rpath,$LD_LIBRARY_PATH"
+  fi
 fi
 
 if [ -z "$PATH" ]; then
@@ -57,6 +67,7 @@ if [ -z "$PATH" ]; then
 else
   export PATH=$libexec_path:$PATH
 fi
+
 
 if ! command -v cmake ; then
   if [ $OS = "Darwin" ]; then
@@ -68,6 +79,7 @@ if ! command -v cmake ; then
     exit 1
   fi
 fi
+
 
 build_with_ninja()
 {
@@ -83,30 +95,17 @@ build_with_ninja()
   fi
   echo "Configuring for Ninja."
   CCACHE=ccache
-  cmake -B "$ninja_build_dir" -G Ninja llvm \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DDEFAULT_SYSROOT="$DEFAULT_SYSROOT" \
-  -DLLVM_ENABLE_ASSERTIONS=ON \
-  -DCMAKE_INSTALL_PREFIX="$ninja_build_dir/install" \
-  -DCLANG_DEFAULT_LINKER=lld \
-  -DLLVM_TARGETS_TO_BUILD="$targets" \
-  -DLLVM_ENABLE_RUNTIMES='openmp;compiler-rt;offload' \
-  -DLIBOMPTARGET_PLUGINS_TO_BUILD='host' \
-  -DCOMPILER_RT_BUILD_ORC=OFF \
-  -DCOMPILER_RT_BUILD_XRAY=OFF \
-  -DCOMPILER_RT_BUILD_MEMPROF=OFF \
-  -DCOMPILER_RT_BUILD_LIBFUZZER=OFF \
-  -DCOMPILER_RT_BUILD_SANITIZERS=ON \
-  -DCMAKE_C_COMPILER_LAUNCHER="$CCACHE" \
-  -DCMAKE_CXX_COMPILER_LAUNCHER="$CCACHE" \
-  -DLLVM_ENABLE_PROJECTS='clang;lld;llvm;flang' \
-  -DLLVM_INSTALL_UTILS=ON \
-  -DBUILD_SHARED_LIBS=ON \
-  -DCMAKE_CXX_STANDARD=17 \
-  -DLIBOMPTARGET_BUILD_CUDA_PLUGIN=OFF \
-  -DCLANG_DEFAULT_PIE_ON_LINUX=OFF \
-  -DLIBOMP_OMPT_SUPPORT=ON
-  cd $ninja_build_dir
+  cmake -B "$build_dir" -G Ninja llvm \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DLLVM_ENABLE_PROJECTS="flang;clang;mlir" \
+    -DDEFAULT_SYSROOT="$DEFAULT_SYSROOT" \
+    -DLLVM_TARGETS_TO_BUILD="$targets" \
+    -DCMAKE_INSTALL_PREFIX="$install_dir" \
+    -DLLVM_ENABLE_RUNTIMES='openmp;compiler-rt;offload;flang-rt' \
+    -DCMAKE_CXX_LINK_FLAGS="$CMAKE_CXX_LINK_FLAGS" \
+    -DLLVM_INCLUDE_EXAMPLES=On \
+    -DLLVM_BUILD_EXAMPLES=On
+  cd "$build_dir"
   ninja
   ninja install
 }
@@ -142,11 +141,7 @@ handle_flag()
               print_usage_info
               exit
               ;;
-          --make)
-              build_with_make
-              exit
-              ;;
-          --list-compilers)
+          -l | --list-compilers)
               list_compilers
               exit
               ;;
