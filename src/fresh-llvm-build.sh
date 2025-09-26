@@ -20,6 +20,10 @@ elif [ $OS = "Linux" ]; then
   DEFAULT_SYSROOT=""
 fi
 
+export FC_DEFAULT="gfortran-14"
+export CC_DEFAULT="gcc-14"
+export CXX_DEFAULT="g++-14"
+
 print_usage_info()
 {
     echo "LLVM/flang Build Script"
@@ -97,6 +101,9 @@ build_with_ninja()
   CCACHE=ccache
   cmake -B "$build_dir" -G Ninja llvm \
     -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_Fortran_COMPILER="${FC:-$FC_DEFAULT}"\
+    -DCMAKE_C_COMPILER="${CC:-$CC_DEFAULT}" \
+    -DCMAKE_CXX_COMPILER="${CXX:-$CXX_DEFAULT}" \
     -DLLVM_ENABLE_PROJECTS="flang;clang;mlir" \
     -DDEFAULT_SYSROOT="$DEFAULT_SYSROOT" \
     -DLLVM_TARGETS_TO_BUILD="$targets" \
@@ -112,23 +119,11 @@ build_with_ninja()
 
 list_compilers()
 {
-    if [ -z ${FC:-} ]; then
-      echo "Please set FC to designate the Fortran compiler to use."
-      exit 1
-    fi
-    if [ -z ${CC:-} ]; then
-      echo "Please set CC to designate the C compiler to use."
-      exit 1
-    fi
-    if [ -z ${CXX:-} ]; then
-      echo "Please set CXX to designate the C=++ compiler to use."
-      exit 1
-    fi
     echo "This script will use the following compilers to build LLVM/flang:"
     echo ""
-    echo "  $FC"
-    echo "  $CC"
-    echo "  $CXX"
+    echo "  ${FC:-$FC_DEFAULT}"
+    echo "  ${CC:-$CC_DEFAULT}"
+    echo "  ${CXX:-$CXX_DEFAULT}"
 }
 
 handle_flag()
