@@ -20,9 +20,8 @@ elif [ $OS = "Linux" ]; then
   DEFAULT_SYSROOT=""
 fi
 
-export FC_DEFAULT="gfortran-14"
-export CC_DEFAULT="gcc-14"
-export CXX_DEFAULT="g++-14"
+export CC_DEFAULT="gcc"
+export CXX_DEFAULT="g++"
 
 print_usage_info()
 {
@@ -51,7 +50,7 @@ if ! command -v ccache ; then
 fi
 
 if [ $OS = "Darwin" ]; then
-  libexec_path="/usr/local/opt/ccache/libexec"
+  libexec_path="/opt/homebrew/opt/ccache/libexec"
   if [ -z ${DYLD_LIBRARY_PATH:-} ]; then
     export CMAKE_CXX_LINK_FLAGS="-Wl,-rpath"
   else
@@ -100,18 +99,17 @@ build_with_ninja()
   echo "Configuring for Ninja."
   CCACHE=ccache
   cmake -B "$build_dir" -G Ninja llvm \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_Fortran_COMPILER="${FC:-$FC_DEFAULT}"\
-    -DCMAKE_C_COMPILER="${CC:-$CC_DEFAULT}" \
-    -DCMAKE_CXX_COMPILER="${CXX:-$CXX_DEFAULT}" \
     -DLLVM_ENABLE_PROJECTS="flang;clang;mlir" \
-    -DDEFAULT_SYSROOT="$DEFAULT_SYSROOT" \
     -DLLVM_TARGETS_TO_BUILD="$targets" \
     -DCMAKE_INSTALL_PREFIX="$install_dir" \
     -DLLVM_ENABLE_RUNTIMES='openmp;compiler-rt;offload;flang-rt' \
+    -DDEFAULT_SYSROOT="$DEFAULT_SYSROOT" \
     -DCMAKE_CXX_LINK_FLAGS="$CMAKE_CXX_LINK_FLAGS" \
+    -DCMAKE_BUILD_TYPE=Release \
     -DLLVM_INCLUDE_EXAMPLES=On \
-    -DLLVM_BUILD_EXAMPLES=On
+    -DLLVM_BUILD_EXAMPLES=On \
+    -DCMAKE_C_COMPILER="${CC:-$CC_DEFAULT}" \
+    -DCMAKE_CXX_COMPILER="${CXX:-$CXX_DEFAULT}"
   cd "$build_dir"
   ninja
   ninja install
@@ -121,7 +119,6 @@ list_compilers()
 {
     echo "This script will use the following compilers to build LLVM/flang:"
     echo ""
-    echo "  ${FC:-$FC_DEFAULT}"
     echo "  ${CC:-$CC_DEFAULT}"
     echo "  ${CXX:-$CXX_DEFAULT}"
 }
